@@ -1,0 +1,42 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+url = 'https://www.univcan.ca/universities/facts-and-stats/tuition-fees-by-university/'
+
+# Send an HTTP request to the URL
+response = requests.get(url)
+
+# Parse the HTML content
+soup = BeautifulSoup(response.text, 'html.parser')
+
+table = soup.find('table', id = 'data_table')
+
+# 1. Main Dataframe 
+candf=pd.DataFrame()
+
+# 2. Run loop for headers - across all TH & get the data into the dataframe as the 1st row
+headers = []
+for th in table.find_all('th'):
+    headers.append(th.text.strip())
+candf = candf.append(pd.Series(headers), ignore_index=True)
+
+# 3. Run loop for data - across all TD
+for tr in table.find_all('tr'):
+    row = []
+    for td in tr.find_all('td'):
+        row.append(td.text.strip())
+    if len(row) > 0:
+        candf = candf.append(pd.Series(row), ignore_index=True)
+
+# 4. Remove rows with missing values and set headers
+candf = candf.dropna(how='all')
+candf.columns = candf.iloc[0]
+candf = candf[1:]
+
+print(candf)
+
+#5.Save the output in an excel sheet 
+candf.to_excel('tuition-fees-can.xlsx', index=False)
+
+print(candf)
